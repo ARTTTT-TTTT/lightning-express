@@ -1,4 +1,3 @@
-# schemas/user_schema.py
 from pydantic import BaseModel, EmailStr, model_validator, field_validator, Field
 from typing import Optional, List
 from datetime import datetime
@@ -10,13 +9,15 @@ from app.schemas.user_address_schema import UserAddressOut
 
 class UserBase(BaseModel):
     username: str
-    email: Optional[EmailStr] = Field(default=None)
-    full_name: Optional[str] = Field(default=None)
-    phone_number: Optional[str] = Field(default=None)
+    email: EmailStr | None
+    phone_number: str | None
+    full_name: str
     user_type: UserTypeEnum = UserTypeEnum.CUSTOMER
 
 
 class UserCreate(UserBase):
+    email: Optional[EmailStr] = Field(default=None)
+    phone_number: Optional[str] = Field(default=None)
     password: str
 
     @field_validator("username")
