@@ -8,4 +8,4 @@ set -x
 
 python app/database/init_db.py
 
-alembic upgrade head
+# alembic upgrade head

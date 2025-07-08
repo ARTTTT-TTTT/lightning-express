@@ -9,6 +9,19 @@ from app.database.base import Base
 # * ====== Enum Definitions ======
 
 
+class UserTypeEnum(str, enum.Enum):
+    CUSTOMER = "customer"
+    DRIVER = "driver"
+    ADMIN = "admin"
+    STAFF = "staff"
+
+
+class AddressTypeEnum(str, enum.Enum):
+    HOME = "home"
+    WORK = "work"
+    OTHER = "other"
+
+
 class PaymentMethodEnum(str, enum.Enum):
     CASH_ON_DELIVERY = "cash_on_delivery"
     CREDIT_CARD = "credit_card"
@@ -39,24 +52,13 @@ class EventTypeEnum(str, enum.Enum):
 # * ====== Core Master Tables ======
 
 
-class UserType(Base):
-    __tablename__ = "user_types"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(
-        String, unique=True, nullable=False
-    )  # * e.g. 'customer', 'driver', 'admin', 'staff'
-    description = Column(Text)
-
-    users = relationship("User", back_populates="user_type_rel")
-
-
 class VehicleType(Base):
     __tablename__ = "vehicle_types"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)  # * e.g. 'van', 'truck', 'motorcycle'
+    name = Column(String, unique=True, nullable=False)  # * e.g. 'motorcycle', 'truck', 'airplane'
     description = Column(Text)
+    # TODO: capacity
 
     vehicles = relationship("Vehicle", back_populates="vehicle_type_rel")
 
@@ -98,18 +100,63 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+
     email = Column(String, unique=True, index=True)
+    phone_number = Column(String, unique=True, index=True)
     full_name = Column(String)
-    phone_number = Column(String)
-    address = Column(Text)
-    user_type_id = Column(Integer, ForeignKey("user_types.id"), nullable=False)
+
+    default_address_id = Column(
+        Integer, ForeignKey("user_addresses.id", name="fk_users_default_address"), nullable=True
+    )
+    user_type = Column(
+        Enum(UserTypeEnum, name="user_type_enum"),
+        default=UserTypeEnum.CUSTOMER,
+        nullable=False,
+    )
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    user_type_rel = relationship("UserType", back_populates="users")
     parcels_sent = relationship("Parcel", back_populates="sender")
     deliveries_assigned = relationship("Delivery", back_populates="driver")
+    addresses = relationship(
+        "UserAddress",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="[UserAddress.user_id]",
+        lazy="selectin",
+    )
+    default_address = relationship(
+        "UserAddress", foreign_keys=[default_address_id], lazy="selectin"
+    )
+
+
+class UserAddress(Base):
+    __tablename__ = "user_addresses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id", ondelete="CASCADE", use_alter=True, name="fk_user_addresses_user_id"
+        ),
+        nullable=False,
+    )
+
+    address_line = Column(String, nullable=False)
+    subdistrict = Column(String, nullable=False)
+    district = Column(String, nullable=False)
+    province = Column(String, nullable=False)
+    postal_code = Column(String, nullable=False)
+    phone_number = Column(String)
+    address_type = Column(
+        Enum(AddressTypeEnum, name="address_type_enum"),
+        default=AddressTypeEnum.HOME,
+    )
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="addresses", foreign_keys="[UserAddress.user_id]")
 
 
 # * ====== Parcel and Related Entities ======

@@ -8,7 +8,7 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-alembic upgrade head
+REM alembic upgrade head
 if %errorlevel% neq 0 (
     echo alembic upgrade failed
     exit /b %errorlevel%
